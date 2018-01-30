@@ -5,132 +5,119 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: lchaillo <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2018/01/19 14:06:37 by lchaillo          #+#    #+#             */
-/*   Updated: 2018/01/24 12:30:52 by lchaillo         ###   ########.fr       */
+/*   Created: 2018/01/24 14:07:36 by lchaillo          #+#    #+#             */
+/*   Updated: 2018/01/30 19:24:06 by lchaillo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-static char	*ft_read_and_save(const int fd, char *tmp)
-{
-	int		i;
-	int		ret;
-	char	buf[BUF_SIZE + 1];
-
-	i = 0;
-	ret = read(fd, buf, BUF_SIZE);
-	buf[ret] = '\0';
-	while (buf[i] != '\n' && ret != 0)
-	{
-		if (buf[i] == '\0')
-		{
-			tmp != 0 ? tmp = ft_strjoin(tmp, buf) : 0;
-			tmp == 0 ? tmp = ft_strdup(buf) : 0;
-			ret = read(fd, buf, BUF_SIZE);
-			buf[ret] = '\0';
-			i = -1;
-		}
-		i++;
-	}
-	tmp != 0 ? tmp = ft_strjoin(tmp, buf) : 0;
-	tmp == 0 ? tmp = ft_strdup(buf) : 0;
-	return (tmp);
-}
-
-static char	*ft_linecopy(char *tmp)
+static char	*ft_linecopy(char *save)
 {
 	int		i;
 	char	*line;
 
 	i = 0;
-	while (tmp[i] != '\n' && tmp[i] != '\0')
+	while (save[i] != '\n' && save[i] != '\0')
 		i++;
-	line = ft_strnew(i);
-	i = 0;
-	while (tmp[i] != '\n' && tmp[i] != '\0')
-	{
-		line[i] = tmp[i];
-		i++;
-	}
+	line = ft_strsub(save, 0, i);
 	return (line);
 }
 
-static char	*ft_savecpy(char *save, char *tmp)
+static char	*ft_savesplit(char *save)
 {
-	int	i;
-	int y;
+	char	*tmp;
+	int		len;
+	int		i;
+	char	*ptr;
 
+	tmp = NULL;
+	tmp = ft_strdup(save);
+	len = ft_strlen(tmp);
 	i = 0;
+	ptr = save;
 	while (tmp[i] != '\n' && tmp[i] != '\0')
 		i++;
-	y = 0;
-	save = ft_strnew(ft_strlen(tmp) - i);
-	i++;
-	while (tmp[i] != '\0')
+	if (tmp[i] != '\0')
+		i++;
+	save = ft_strsub(tmp, i, len - i);
+	ft_strdel(&tmp);
+	ft_strdel(&ptr);
+	return (save);
+}
+
+static char	*ft_read_save(char *save, const int fd)
+{
+	int		i;
+	int		ret;
+	char	buf[BUFF_SIZE + 1];
+	char	*ptr;
+
+	save == NULL ? ret = read(fd, buf, BUFF_SIZE) : 0;
+	save == NULL ? buf[ret] = '\0' : 0;
+	save == NULL ? save = ft_strdup(buf) : 0;
+	i = 0;
+	while (save[i] != '\n' && ret != 0)
 	{
-		save[y] = tmp[i];
-		y++;
+		if (save[i] == '\0')
+		{
+			ret = read(fd, buf, BUFF_SIZE);
+			buf[ret] = '\0';
+			ptr = save;
+			save = ft_strjoin(save, buf);
+			ft_strdel(&ptr);
+			i = -1;
+		}
 		i++;
 	}
 	return (save);
 }
 
-int		get_next_line(const int fd, char **line)
+int			get_next_line(const int fd, char **line)
 {
-	int			i;
-	char		*tmp;
-	static char	*save = NULL;
+	char		buf[BUFF_SIZE + 1];
+	static char	*save =  NULL;
 
-	if (fd < 0)
+	if (fd < 0 || line == NULL || read(fd, buf, 0) < 0)
 		return (-1);
-	i = 0;
-	if (!(save))
+	save = ft_read_save(save, fd);
+	//return (0);
+	if (save[0] == '\0')
 	{
-		tmp = ft_strnew(1);
-		tmp = ft_read_and_save(fd, tmp);
-		*line = ft_linecopy(tmp);
-		save = ft_savecpy(save, tmp);
-		ft_strdel(&tmp);
-		if (save == NULL)
-			return (0);
-		return (1);
-	}
-	tmp = ft_strdup(save);
-	while (tmp[i] != '\n' && tmp[i] != '\0')
-		i++;
-	if (tmp[i] == '\n')
-	{
-		*line = ft_linecopy(tmp);
-		save = ft_savecpy(save, tmp);
-		ft_strdel(&tmp);
-		return (1);
-	}
-	if (tmp[0] == '\0')
-	{
-		ft_strdel(&tmp);
 		ft_strdel(&save);
 		return (0);
 	}
-	tmp = ft_read_and_save(fd, tmp);
-	*line = ft_linecopy(tmp);
-	save = ft_savecpy(save, tmp);
-	ft_strdel(&tmp);
+	*line = ft_linecopy(save);
+	save = ft_savesplit(save);
 	return (1);
 }
 
-/*int		main(int argc, char **argv)
+/*int main(int argc, char **argv)
 {
-	char *str = NULL;
+	char *line;
 	int fd;
-
-	if (argc != 2)
-		return (0);
-	fd = open(argv[1], O_RDONLY);
-	//get_next_line(fd, &str);
-	while (get_next_line(fd, &str) == 1)
-		ft_putendl(str);
-	//ft_putstr(str);
-	close(fd);
+	char *temp;
+	if (argc == 2)
+	{
+		fd = open(argv[1], O_RDONLY);
+		while (get_next_line(fd, &line) == 1)
+		{
+			temp = line;
+			ft_putendl(line);
+			ft_strdel(&temp);
+		}
+		ft_strdel(&line);
+		close(fd);
+		fd2 = open(argv[2], O_RDONLY);
+		while (get_next_line(fd2, &line) == 1)
+		{
+			temp = line;
+			ft_putendl(line);
+			ft_strdel(&temp);
+		}
+		//ft_strdel(&line);
+		close(fd2);
+	}
+	//while (1);
 	return (0);
 }*/

@@ -6,7 +6,7 @@
 /*   By: lchaillo <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/11/23 16:45:57 by lchaillo          #+#    #+#             */
-/*   Updated: 2017/12/02 11:49:21 by lchaillo         ###   ########.fr       */
+/*   Updated: 2018/01/30 12:21:26 by lchaillo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,6 @@ t_list		*ft_lstmap(t_list *lst, t_list *(*f)(t_list *elem))
 			tmp = tmp->next;
 		tmp->next = n_elem;
 		n_elem = n_elem->next;
-//		free(n_elem);
 	}
 	return (n_lst);
 }
