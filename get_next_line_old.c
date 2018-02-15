@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   get_next_line_lst.c                                :+:      :+:    :+:   */
+/*   get_next_line.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: lchaillo <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2018/02/15 10:42:26 by lchaillo          #+#    #+#             */
-/*   Updated: 2018/02/15 15:31:09 by lchaillo         ###   ########.fr       */
+/*   Created: 2018/01/24 14:07:36 by lchaillo          #+#    #+#             */
+/*   Updated: 2018/02/15 16:20:54 by lchaillo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,6 +36,8 @@ static char	*ft_savesplit(char *save)
 	ptr = save;
 	while (tmp[i] != '\n' && tmp[i] != '\0')
 		i++;
+	if (tmp[i] != '\0')
+		i++;
 	save = ft_strsub(tmp, i, len - i);
 	ft_strdel(&tmp);
 	ft_strdel(&ptr);
@@ -46,21 +48,21 @@ static char	*ft_read_save(char *save, const int fd)
 {
 	int		i;
 	int		ret;
-	char	buff[BUFF_SIZE + 1];
+	char	buf[BUFF_SIZE + 1];
 	char	*ptr;
 
-	save == NULL ? ret = read(fd, buff, BUFF_SIZE) : 0;
-	save == NULL ? buff[ret] = '\0' : 0;
-	save == NULL ? save = ft_strdup(buff) : 0;
+	save == NULL ? ret = read(fd, buf, BUFF_SIZE) : 0;
+	save == NULL ? buf[ret] = '\0' : 0;
+	save == NULL ? save = ft_strdup(buf) : 0;
 	i = 0;
 	while (save[i] != '\n' && ret != 0)
 	{
 		if (save[i] == '\0')
 		{
-			ret = read(fd, buff, BUFF_SIZE);
-			buff[ret] = '\0';
+			ret = read(fd, buf, BUFF_SIZE);
+			buf[ret] = '\0';
 			ptr = save;
-			save = ft_strjoin(save, buff);
+			save = ft_strjoin(save, buf);
 			ft_strdel(&ptr);
 			i = -1;
 		}
@@ -69,25 +71,43 @@ static char	*ft_read_save(char *save, const int fd)
 	return (save);
 }
 
-int		get_next_line(const int fd, char **line)
+int			get_next_line(const int fd, char **line)
 {
-	char	buff[BUFF_SIZE + 1];
-	static t_list	*list = NULL;
-	t_list			*n_elem;
-	t_gnl			*gnl;
+	char		buf/*[BUFF_SIZE + 1]*/;
+	static char	*save =  NULL;
 
-	if (fd < 0 || line == NULL || read(fd, buff, 0) < 0)
+	if (!(buf = ft_strnew(BUFF_SIZE)) || fd < 0 || line == NULL 
+			|| read(fd, buf, 0) < 0)
 		return (-1);
-	list = ft_lstnew(gnl, sizeof(t_gnl));
-	n_elem = list;
-	((t_gnl *)n_elem->content)->fd = fd;
-	((t_gnl *)n_elem->content)->save = ft_read_save(
-		((t_gnl *)n_elem ->content)->save, fd);
-	ft_lstadd(&list, n_elem);
-	if (((t_gnl *)list->content)->save[0] == '\0')
+	ft_strdel(&buf);
+	save = ft_read_save(save, fd);
+	if (save[0] == '\0')
+	{
+		ft_strdel(&save);
 		return (0);
-	ft_linecopy(((t_gnl *)list->content)->save, line);
-	((t_gnl *)list->content)->save = ft_savesplit((
-			(t_gnl *)list->content)->save);
+	}
+	ft_linecopy(save, line);
+	save = ft_savesplit(save);
 	return (1);
 }
+
+/*int main(int argc, char **argv)
+{
+	char *line;
+	int fd;
+	char *temp;
+	if (argc == 2)
+	{
+		fd = open(argv[1], O_RDONLY);
+		while (get_next_line(fd, &line) == 1)
+		{
+			temp = line;
+			ft_putendl(line);
+			ft_strdel(&temp);
+		}
+		ft_strdel(&line);
+		close(fd);
+	}
+	//while (1);
+	return (0);
+}*/
