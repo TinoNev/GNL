@@ -1,93 +1,123 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   get_next_line_lst.c                                :+:      :+:    :+:   */
+/*   get_next_line.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: lchaillo <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2018/02/15 10:42:26 by lchaillo          #+#    #+#             */
-/*   Updated: 2018/02/15 15:31:09 by lchaillo         ###   ########.fr       */
+/*   Created: 2018/01/24 14:07:36 by lchaillo          #+#    #+#             */
+/*   Updated: 2018/02/15 16:20:54 by lchaillo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-static void	ft_linecopy(char *save, char **line)
+static int	ft_checkfd(t_gnl **lst, int fd)
 {
-	int		i;
-
-	i = 0;
-	while (save[i] != '\n' && save[i] != '\0')
-		i++;
-	*line = ft_strsub(save, 0, i);
-}
-
-static char	*ft_savesplit(char *save)
-{
-	char	*tmp;
-	int		len;
-	int		i;
-	char	*ptr;
+	t_gnl	*tmp;
 
 	tmp = NULL;
-	tmp = ft_strdup(save);
-	len = ft_strlen(tmp);
-	i = 0;
-	ptr = save;
-	while (tmp[i] != '\n' && tmp[i] != '\0')
-		i++;
-	save = ft_strsub(tmp, i, len - i);
-	ft_strdel(&tmp);
-	ft_strdel(&ptr);
-	return (save);
+	while (*lst  && (*lst)->fd != fd)
+	{
+		tmp = *lst;
+		*lst = (*lst)->next;
+	}
+	if (!(*lst))
+	{
+		if (!(*lst = (t_gnl *)malloc(sizeof(t_gnl))))
+			return (0);
+		(*lst)->save = ft_strdup("\0");
+		(*lst)->next = NULL;
+		(*lst)->fd = fd;
+		if (tmp)
+			tmp->next = *lst;;
+	}
+	return (1);
 }
 
-static char	*ft_read_save(char *save, const int fd)
+static int	ft_checkline(char *str)
 {
 	int		i;
-	int		ret;
-	char	buff[BUFF_SIZE + 1];
-	char	*ptr;
 
-	save == NULL ? ret = read(fd, buff, BUFF_SIZE) : 0;
-	save == NULL ? buff[ret] = '\0' : 0;
-	save == NULL ? save = ft_strdup(buff) : 0;
 	i = 0;
-	while (save[i] != '\n' && ret != 0)
+	if (str)
 	{
-		if (save[i] == '\0')
+		while (str[i])
 		{
-			ret = read(fd, buff, BUFF_SIZE);
-			buff[ret] = '\0';
-			ptr = save;
-			save = ft_strjoin(save, buff);
-			ft_strdel(&ptr);
-			i = -1;
+			if (str[i] == '\n')
+				return (1);
+			i++;
 		}
+	}
+	return (0);
+}
+
+static int	ft_save(t_gnl **lst, char *buf)
+{
+	char	*tmp;
+	int		i;
+	int		j;
+	int		len;
+
+	len = ((*lst)->save ? ft_strlen((*lst)->save) : 0);
+	if (!(tmp = (char *)malloc(sizeof(char) * len + ft_strlen(buf) + 1)))
+		return (0);
+	i = 0;
+	while ((*lst)->save && (*lst)->save[i])
+	{
+		tmp[i] = (*lst)->save[i];
 		i++;
 	}
-	return (save);
+	j = 0;
+	while (buf[j])
+		tmp[i++] = buf[j++];
+	tmp[i] = '\0';
+	free((*lst)->save);
+	(*lst)->save = tmp;
+	return (1);
+}
+
+static void	ft_copy_and_save(t_gnl **lst, char **line)
+{
+	char	*tmp;
+	int		i;
+
+	i = 0;
+	while ((*lst)->save[i] && (*lst)->save[i] != '\n')
+		i++;
+	*line = ft_strsub((*lst)->save, 0, i);
+	i += ((*lst)->save[i] && (*lst)->save[i] == '\n' ? 1 : 0);
+	if ((*lst)->save[i])
+		tmp = ft_strsub((*lst)->save, i, ft_strlen((*lst)->save));
+	else
+		tmp = ft_strdup("\0");
+	free((*lst)->save);
+	(*lst)->save = tmp;
 }
 
 int		get_next_line(const int fd, char **line)
 {
-	char	buff[BUFF_SIZE + 1];
-	static t_list	*list = NULL;
-	t_list			*n_elem;
-	t_gnl			*gnl;
+	static t_gnl	*lst = NULL;
+	char			buf[BUFF_SIZE + 1];
+	int				ret;
+	t_gnl			*slst;
 
-	if (fd < 0 || line == NULL || read(fd, buff, 0) < 0)
+	slst = lst;
+	ret = 0;
+	if (fd < 0 || !(line) || read(fd, buf, 0) < 0)
 		return (-1);
-	list = ft_lstnew(gnl, sizeof(t_gnl));
-	n_elem = list;
-	((t_gnl *)n_elem->content)->fd = fd;
-	((t_gnl *)n_elem->content)->save = ft_read_save(
-		((t_gnl *)n_elem ->content)->save, fd);
-	ft_lstadd(&list, n_elem);
-	if (((t_gnl *)list->content)->save[0] == '\0')
-		return (0);
-	ft_linecopy(((t_gnl *)list->content)->save, line);
-	((t_gnl *)list->content)->save = ft_savesplit((
-			(t_gnl *)list->content)->save);
-	return (1);
+	ft_checkfd(&lst, fd);
+	while (ft_checkline(lst->save)== 0 && (ret = read(fd, buf, BUFF_SIZE)))
+	{
+		buf[ret] = '\0';
+		ft_save(&lst, buf);
+	}
+	if (lst->save[0])
+	{
+		ft_copy_and_save(&lst, line);
+		lst = slst ? slst : lst;
+		return (1);
+	}
+	lst = slst ? slst : lst;
+	return (ret ? 1 : 0);
 }
