@@ -6,7 +6,7 @@
 /*   By: lchaillo <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/01/24 14:07:36 by lchaillo          #+#    #+#             */
-/*   Updated: 2018/02/15 16:20:54 by lchaillo         ###   ########.fr       */
+/*   Updated: 2018/02/21 10:25:54 by lchaillo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ static int	ft_checkfd(t_gnl **lst, int fd)
 
 static int	ft_checkline(char *str)
 {
-	int		i;
+	int	i;
 
 	i = 0;
 	if (!str)
@@ -92,7 +92,7 @@ static void	ft_copy_and_save(t_gnl **lst, char **line)
 	(*lst)->save = tmp;
 }
 
-int		get_next_line(const int fd, char **line)
+int			get_next_line(const int fd, char **line)
 {
 	static t_gnl	*lst = NULL;
 	char			*buf;
